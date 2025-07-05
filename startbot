@@ -1,3 +1,0 @@
-#!/usr/bin/bash
-cd source
-python3 parabot.py
