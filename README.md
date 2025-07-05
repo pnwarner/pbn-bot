@@ -31,6 +31,7 @@ These instructions will get you a copy of the project up and running on your loc
 If you have a Git repository, clone it:
 
     ```bash
+    git clone https://github.com/pnwarner/pbn-bot
     ```
 
     Otherwise, ensure your `main.js` file is in a project directory.
@@ -40,6 +41,7 @@ If you have a Git repository, clone it:
     Open your terminal in the project directory and run:
 
     ```bash
+    cd pbn-bot/
     npm install
     ```
 
