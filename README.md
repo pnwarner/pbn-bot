@@ -139,7 +139,7 @@ this.botTypingDelay = 15; // (ms) delay between keystrokes, can simulate better 
 
 ## Contributing
 
-> Note: This project is a reboot from a previous, larger codebase that utilized both Python (Selenium) and JavaScript. This current version aims for near-equal functionality with a significantly smaller and more streamlined JavaScript-only codebase.
+> Note: This project is a reboot from a previous, larger codebase that utilized both Python (Selenium) and JavaScript. This current version aims for near-equal functionality with a significantly smaller and more streamlined JavaScript-only codebase.  The old Python-Selenium code can still be found [here](https://github.com/pnwarner/pbn-bot/tree/archive/old-codebase).
 
 1. Fork the repository.
 2. Create your feature branch (`git checkout -b feature/AmazingFeature`).
