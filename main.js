@@ -21,32 +21,35 @@ class PBNBot {
     // Node.js terminal interface
     this.rl = null;  // CLI Terminal Input Object, Do Not Edit
 
-    // Puppeteer element IDs
-    this.pbnBeginnerServerId = 'Component1121';  // PBN Beginner Server selector Div Id
-    this.pbnPrimaryServerId = 'Component1123';  // PBN Primary Server selector Div Id
-    this.pbnTournamentServerId = 'Component1125'; // PBN Tournament Server selector Div Id
-    this.pbnUsernameTextboxId = 'Component826'; // PBN Username Input textbox Id
-    this.pbnPasswordTextboxId = 'Component830';  // PBN Password Input textbox Id
-    this.pbnMainInputTextboxId = 'Component598';  // PBN Main command text input box Id
+    // === Puppeteer element IDs
+    this.pbnBeginnerServerId = process.env.PBN_BEGINNER_SERVER_ID; // PBN Beginner Server selector Div Id
+    this.pbnPrimaryServerId = process.env.PBN_PRIMARY_SERVER_ID; // PBN Primary Server selector Div Id
+    this.pbnTournamentServerId = process.env.PBN_TOURNAMENT_SERVER_ID; // PBN Tournament Server selector Div Id
+    this.pbnUsernameTextboxId = process.env.PBN_USERNAME_TEXTBOX_ID; // PBN Username Input textbox Id
+    this.pbnPasswordTextboxId = process.env.PBN_PASSWORD_TEXTBOX_ID; // PBN Password Input textbox Id
+    this.pbnMainInputTextboxId = process.env.PBN_MAIN_INPUT_TEXTBOX_ID; // PBN Main command text input box Id
 
-    // Credentials loaded from environment variables
+    // === Credentials loaded from environment variables 
     this.pbnHandle = process.env.PBN_HANDLE;  // PBN_HANDLE= in .env
     this.pbnPassword = process.env.PBN_PASSWORD; // PBN_PASSWORD= in .env
     this.discordWebhookUrl = process.env.DISCORD_WEBHOOK_URL; // DISCORD_WEBHOOK_URL= in .env 
     this.discordAvatarUrl = process.env.DISCORD_AVATAR_URL;  // DISCORD_AVATAR_URL= in .env
 
-    // Enable / Disable Looped Background services
-    this.autoReLogin = true; // Enable or Disable Re-login after logout detected
-    this.lookIntervalEnabled = true;  // Enable auto-look for anti-idle reasons
-    this.rwhoIntervalEnabled = true;  // Sends RWHO Command at set interval
-    this.gameListIntervalEnabled = false;  // Enable Retreive player list from backend web api
-    this.activePlayerListEnabled = true; // Reports active users over Discord, works with this.discordSendUpdates enabled
-    this.commandEntryIntervalEnabled = true; // Enable Command list entry loop.  DO NOT DISABLE
-    this.commandEntryWatcherIntervalEnabled = true; // Enable Command Entry list watcher to monitor command queue
-    this.logoutIntervalEnabled = true; // Enable Watching for logout, and re-login
-    this.discordSendUpdates = true; // Enable sending Discord Updates, works with this.activePlayerListEnabled
+    // === Enable / Disable Looped Background services (Values set in .env file)
+    this.autoReLogin = (process.env.AUTO_RE_LOGIN || '').toLowerCase() === 'true'; // Enable or Disable Re-login after logout detected
+    this.lookIntervalEnabled = (process.env.LOOK_INTERVAL_ENABLED || '').toLowerCase() === 'true'; // Enable auto-look for anti-idle reasons
+    this.rwhoIntervalEnabled = (process.env.RWHO_INTERVAL_ENABLED || '').toLowerCase() === 'true'; // Sends RWHO Command at set interval
+    this.gameListIntervalEnabled = (process.env.GAME_LIST_INTERVAL_ENABLED || '').toLowerCase() === 'true'; // Enable Retreive player list from backend web api
+    this.activePlayerListEnabled = (process.env.ACTIVE_PLAYER_LIST_ENABLED || '').toLowerCase() === 'true'; // Reports active users over Discord, works with this.discordSendUpdates enabled
+    this.commandEntryIntervalEnabled = (process.env.COMMAND_ENTRY_INTERVAL_ENABLED || '').toLowerCase() === 'true'; // Enable Command list entry loop.  DO NOT DISABLE
+    this.commandEntryWatcherIntervalEnabled = (process.env.COMMAND_ENTRY_WATCHER_INTERVAL_ENABLED || '').toLowerCase() === 'true'; // Enable Command Entry list watcher to monitor command queue
+    this.logoutIntervalEnabled = (process.env.LOGOUT_INTERVAL_ENABLED || '').toLowerCase() === 'true'; // Enable Watching for logout, and re-login
+    this.discordSendUpdates = (process.env.DISCORD_SEND_UPDATES || '').toLowerCase() === 'true'; // Enable sending Discord Updates, works with this.activePlayerListEnabled
+    this.reportLoginsToChat = (process.env.REPORT_LOGINS_TO_CHAT || '').toLowerCase() === 'true'; // Enable this.compareServerLists to send login/logout info to the chat
+    this.reportLoginsToConsole = (process.env.REPORT_LOGINS_TO_CONSOLE || '').toLowerCase() === 'true'; // Enable this.compareServerLists to send login/logout info to the console
+    this.displayGameMessages = (process.env.DISPLAY_GAME_MESSAGES || '').toLowerCase() === 'true';  // Enable displaying messages from server (GAME: )
 
-    // Background Interval Objects
+    // === Background Interval Objects
     this.gameListIntervalFirstRun = true; // Do Not Edit
     this.rwhoIntervalFirstRun = true; // Do Not Edit
     this.lookInterval = null; // Do Not Edit
@@ -57,21 +60,33 @@ class PBNBot {
     this.commandEntryWatcherInterval = null; // Do Not Edit
     this.logoutInterval = null;  // Do Not Edit
 
-    // Bot Timing Options
-    this.autoReLoginDelay = 10 * 60 * 1000; // Time to wait (ms) for re-login (Wait 10 minutes)
-    this.autoLookDelay = 3 * 60 * 1000; // Anti Idle, Send Look command every 3 minutes (ms)
-    this.gameListPollingDelay = 5000;  // Time to Send HTTP Request for server list. (ms) (Every 5 seconds)
-    this.sendCommandListDelay = 750; // Time in between sending command to game. (ms) (Every 3/4 of a second)
-    this.commandEntryWatcherDelay = 10 * 60 * 1000; // Time between reporting how many commands are in queue to send (ms) 
-    this.activePlayerListDelay = 1000;  // Time to check Active player list for players to report to Discord. (ms) (1 second)
-    this.activePlayerReportTime = 300 // Time to Report active player to Discord. (seconds) (5 minutes)
-    this.autoRWHODelay = 1500;  // Time to send RWHO command to game, (ms) (1.5 Seconds)
-    this.botTypingDelay = 15; // (ms) delay between keystrokes, can simulate better typing
+    // === Communication Options
+    this.displayChatMessages = (process.env.DISPLAY_CHAT_MESSAGES || '').toLowerCase() === 'true'; // Display 'chat' messages to console
+    this.displayTellMessages = (process.env.DISPLAY_TELL_MESSAGES || '').toLowerCase() === 'true'; // Display 'tell' messages to console
+    this.displayRtellMessages = (process.env.DISPLAY_RTELL_MESSAGES || '').toLowerCase() === 'true'; // Display 'rtell' messages to console
+    this.displaySayMessages = (process.env.DISPLAY_SAY_MESSAGES || '').toLowerCase() === 'true'; // Display 'say' messages to console
+    this.displayWhisperMessages = (process.env.DISPLAY_WHISPER_MESSAGES || '').toLowerCase() === 'true'; // Display 'whisper' messages to console
+    this.displayTeamchatMessages = (process.env.DISPLAY_TEAMCHAT_MESSAGES || '').toLowerCase() === 'true'; // Display 'teamchat' messages to console
+    this.displayPlanMessages = (process.env.DISPLAY_PLAN_MESSAGES || '').toLowerCase() === 'true'; // Display 'plan' messages to console 
+
+    // === Bot Timing Options
+    this.autoReLoginDelay = parseInt(process.env.AUTO_RE_LOGIN_DELAY, 10); // Time to wait (ms) for re-login (Wait 10 minutes) 10 * 60 * 1000
+    this.autoLookDelay = parseInt(process.env.AUTO_LOOK_DELAY, 10); // Anti Idle, Send Look command every 3 minutes (ms) 3 * 60 * 1000
+    this.gameListPollingDelay = parseInt(process.env.GAME_LIST_POLLING_DELAY, 10); // Time to Send HTTP Request for server list. (ms) (Every 5 seconds)
+    this.sendCommandListDelay = parseInt(process.env.SEND_COMMAND_LIST_DELAY, 10); // Time in between sending command to game. (ms) (Every 3/4 of a second)
+    this.commandEntryWatcherDelay = parseInt(process.env.COMMAND_ENTRY_WATCHER_DELAY, 10); // Time between reporting how many commands are in queue to send (ms) 10 * 60 * 1000
+    this.activePlayerListDelay = parseInt(process.env.ACTIVE_PLAYER_LIST_DELAY, 10); // Time to check Active player list for players to report to Discord. (ms) (1 second)
+    this.activePlayerReportTime = parseInt(process.env.ACTIVE_PLAYER_REPORT_TIME, 10); // Time to Report active player to Discord. (seconds) (5 minutes)
+    this.autoRWHODelay = parseInt(process.env.AUTO_RWHO_DELAY, 10); // Time to send RWHO command to game, (ms) (1.5 Seconds)
+    this.botTypingDelay = parseInt(process.env.BOT_TYPING_DELAY, 10); // (ms) delay between keystrokes, can simulate better typing
     
-    // State Options
+    // === State Options
     this.sendCommandList = []; // Stack of commands waiting to be sent to game
     this.logoutDetected = false;  // Do Not Edit
+    this.isLoggedIn = false; // Do Not Edit
     this.isTyping = false; // Do Not Edit, Lock flag for commandEntryInterval
+    this.activeHTTPRequest = false; // Do Not Edit, Lock flag for gameListInterval
+    this.selectedServer = '';
     this.serverList = {  // Master Server List, Do Not Edit
       beginner: [],
       primary: [],
@@ -141,6 +156,7 @@ class PBNBot {
     if (this.lookInterval) clearInterval(this.lookInterval);
     if (this.gamelistInterval) clearInterval(this.gamelistInterval);
     if (this.rwhoInterval) clearInterval(this.rwhoInterval);
+    this.rwhoIntervalFirstRun = true;
     if (this.commandEntryInterval) clearInterval(this.commandEntryInterval);
     if (this.commandEntryWatcherInterval) clearInterval(this.commandEntryWatcherInterval);
     if (this.activePlayerListInterval) {
@@ -150,6 +166,15 @@ class PBNBot {
     if (shutDown) {
       if (this.logoutInterval) clearInterval(this.logoutInterval);
     }
+
+    // Clear old player and game data
+    this.serverList = {  // Master Server List, Do Not Edit
+      beginner: [],
+      primary: [],
+      tournament: [],
+    };
+    
+    this.sendCommandList = [];
   }
 
   // === Log all WebSocket communication, and determine if it needs to be parsed
@@ -185,62 +210,86 @@ class PBNBot {
 
   // === Sends login input to selected server using Puppeteer typing
   async handleLoginInteraction() {
-    let serverToConnect = '';
-
     // Determine server ID based on config
     switch (this.server) {
       case 'beginner':
-        serverToConnect = this.pbnBeginnerServerId;
+        this.selectedServer = this.pbnBeginnerServerId;
         break;
       case 'tournament':
-        serverToConnect = this.pbnTournamentServerId;
+        this.selectedServer = this.pbnTournamentServerId;
         break;
       case 'primary':
       default:
         if (this.server !== 'primary') {
           console.log('⚠️ Unknown server. Defaulting to Primary.');
         }
-        serverToConnect = this.pbnPrimaryServerId;
+        this.selectedServer = this.pbnPrimaryServerId;
     }
+    //this.selectedServer = serverToConnect;
     if (!this.logoutDetected) {
       console.log(`🔐 ${this.ansiCodes.RESET}${this.ansiCodes.BOLD}[PBN Bot]${this.ansiCodes.RESET} Selecting server and logging in...`);
-
       // Wait until the server div is available
-      await this.page.waitForSelector(`#${serverToConnect}`);
-
+      await this.page.waitForSelector(`#${this.selectedServer}`);
       // Click server selector
-      await this.page.click(`#${serverToConnect}`);
-      
+      await this.page.click(`#${this.selectedServer}`);
       // Fill in login credentials
       await this.page.type(`#${this.pbnUsernameTextboxId}`, this.pbnHandle);
-      
       await this.page.type(`#${this.pbnPasswordTextboxId}`, this.pbnPassword);
-      
       // Submit login form
       await this.page.keyboard.press('Enter');
-      
       // Wait for the main input field to appear (indicates login success)
       await this.page.waitForSelector(`#${this.pbnMainInputTextboxId}`);
-
     } else {
       console.log(`🔄 ${this.ansiCodes.RESET}${this.ansiCodes.BOLD}[PBN Bot]${this.ansiCodes.RESET} ${this.ansiCodes.BOLD}${this.ansiCodes.RED}Trying to log in after disconnect.${this.ansiCodes.RESET}`);
-      
+      // Server selection ID's change after login
+      // Select new server ID, and re-enter login information
       await this.page.type(`#${this.pbnUsernameTextboxId}`, this.pbnHandle);
-      
       await this.page.type(`#${this.pbnPasswordTextboxId}`, this.pbnPassword);
-      
       await this.page.keyboard.press('Enter');
-      
-      this.logoutDetected = false;
     }
   }
 
   // === Handle Login, and Re-Login Sequences
-  async handleLoginSequence() {
-    // Handle login
-    await this.handleLoginInteraction();
-    // Start timed background tasks
-    this.startAllIntervals();
+  
+  async handleLoginSequence(retryCount = 3, pollIntervalMs = 1000, maxWaitMs = 15000) {
+    for (let attempt = 0; attempt < retryCount; attempt++) {
+      await this.handleLoginInteraction();
+      
+      const loginSuccess = await this.waitForLogin(pollIntervalMs, maxWaitMs);
+      if (loginSuccess) {
+        
+        this.startAllIntervals();
+        // Flip logout flag if sign in from logout was detected.
+        if (this.logoutDetected) {
+          this.logoutDetected = false;
+        }
+        return;
+      }
+
+      console.warn(`Login attempt ${attempt + 1} failed. Retrying...`);
+      // Reload page if entering login info fails
+      await this.page.reload();
+      // Re Select servers .. HandleLoginInteraction should fill in username and pw box and press enter again
+      // Wait until the server div is available
+      await this.page.waitForSelector(`#${this.selectedServer}`);
+      // Click server selector
+      await this.page.click(`#${this.selectedServer}`);
+
+    }
+
+    throw new Error("Failed to log in after multiple attempts.");
+  }
+
+  // === Wait for isLoggedIn flag to be set to true
+  async waitForLogin(pollIntervalMs, timeoutMs) {
+    const start = Date.now();
+
+    while (Date.now() - start < timeoutMs) {
+      if (this.isLoggedIn) return true;
+      await new Promise((r) => setTimeout(r, pollIntervalMs));
+    }
+
+    return false;
   }
 
   // === Parse strings from websocket communication
@@ -251,36 +300,39 @@ class PBNBot {
       'quit', // Server quit acknowledgement
       '0107', // Server logged into
       '05', // New Game information?
-      '10',
-      '12',
-      '14', // Player position update?
-      '13',
+      '10', // Server messages, and active players (GAME: updates)
+      '12',  // Player info and location and buttons
+      '14', // Player position update
+      '13', // Player $ on hand, and equipped items
       '15', // Player Update
       '17', // PBN Terrain message
       '18', // PBN communication messages
     ]
 
     if (!ignorePayloadIds.includes(payloadData['id'])) {
-      console.log(payloadDataString);
+      const now = new Date();
+      const utcTime = now.toISOString().split('T')[1].split('.')[0]; // HH:MM:SS format
+      console.log(`[UTC ${utcTime}] ${payloadDataString}`);
     }
     
     // Detect player Communication
     if (payloadData['id'] == "18") {
       //Player CHAT
-      //console.log(payloadDataString);
       if (payloadData['data']['chatType'] == "18") {
-        //console.log('Chat confirmed');
         const chatHandle = payloadData['data']['from'];
         const chatMessage = payloadData['text'];
-        console.log(`${this.ansiCodes.RESET}${this.ansiCodes.BOLD}${this.ansiCodes.BLUE}${chatHandle}${this.ansiCodes.RESET}: ${chatMessage}`);
+        if (this.displayChatMessages) {
+          console.log(`${this.ansiCodes.RESET}${this.ansiCodes.BOLD}${this.ansiCodes.BLUE}${chatHandle}${this.ansiCodes.RESET}: ${chatMessage}`);
+        }
       }
       //Player TELL
-      //{"id":"18","data":{"from":"gh0stly","to":"gh0stly","chatType":"37"},"text":"test this string"}
       if (payloadData['data']['chatType'] == "37") {
         const fromHandle = payloadData['data']['from'];
         const toHandle = payloadData['data']['to'];
         const tellMessage = payloadData['text'];
-        console.log(`${this.ansiCodes.RESET}${this.ansiCodes.BOLD}${fromHandle}${this.ansiCodes.RESET} ${this.ansiCodes.BOLD}${this.ansiCodes.RED}tells${this.ansiCodes.RESET} ${this.ansiCodes.BOLD}${toHandle}${this.ansiCodes.RESET}: ${tellMessage}`);
+        if (this.displayTellMessages) {
+          console.log(`${this.ansiCodes.RESET}${this.ansiCodes.BOLD}${fromHandle}${this.ansiCodes.RESET} ${this.ansiCodes.BOLD}${this.ansiCodes.RED}tells${this.ansiCodes.RESET} ${this.ansiCodes.BOLD}${toHandle}${this.ansiCodes.RESET}: ${tellMessage}`);
+        }
         // Handle Replying to Tells
         this.parseTellString(fromHandle, tellMessage);
       }
@@ -289,42 +341,51 @@ class PBNBot {
         const fromHandle = payloadData['data']['from'];
         const toHandle = payloadData['data']['to'];
         const rtellMessage = payloadData['text'];
-        console.log(`${this.ansiCodes.RESET}${this.ansiCodes.BOLD}${fromHandle}${this.ansiCodes.RESET} ${this.ansiCodes.BOLD}${this.ansiCodes.RED}rtells${this.ansiCodes.RESET} ${this.ansiCodes.BOLD}${toHandle}${this.ansiCodes.RESET}: ${rtellMessage}`);
+        if (this.displayRtellMessages) {
+          console.log(`${this.ansiCodes.RESET}${this.ansiCodes.BOLD}${fromHandle}${this.ansiCodes.RESET} ${this.ansiCodes.BOLD}${this.ansiCodes.RED}rtells${this.ansiCodes.RESET} ${this.ansiCodes.BOLD}${toHandle}${this.ansiCodes.RESET}: ${rtellMessage}`);
+        }
       }
       // Player Say
       if (payloadData['data']['chatType'] == "say") {
         const fromHandle = payloadData['data']['from'];
         const sayMessage = payloadData['text'];
-        console.log(`${this.ansiCodes.RESET}${this.ansiCodes.BOLD}${fromHandle}${this.ansiCodes.RESET} ${this.ansiCodes.BOLD}${this.ansiCodes.CYAN}says${this.ansiCodes.RESET}: ${sayMessage}`);
+        if (this.displaySayMessages) {
+          console.log(`${this.ansiCodes.RESET}${this.ansiCodes.BOLD}${fromHandle}${this.ansiCodes.RESET} ${this.ansiCodes.BOLD}${this.ansiCodes.CYAN}says${this.ansiCodes.RESET}: ${sayMessage}`);
+        }
       }
       // Player Whisper
       if (payloadData['data']['chatType'] == "whisper") {
         const fromHandle = payloadData['data']['from'];
         const whisperMessage = payloadData['text'];
-        console.log(`${this.ansiCodes.RESET}${this.ansiCodes.BOLD}${fromHandle}${this.ansiCodes.RESET} ${this.ansiCodes.BOLD}${this.ansiCodes.MAGENTA}whispers${this.ansiCodes.RESET}: ${whisperMessage}`);
+        if (this.displayWhisperMessages) {
+          console.log(`${this.ansiCodes.RESET}${this.ansiCodes.BOLD}${fromHandle}${this.ansiCodes.RESET} ${this.ansiCodes.BOLD}${this.ansiCodes.MAGENTA}whispers${this.ansiCodes.RESET}: ${whisperMessage}`);
+        }
       }
       // Player Teamchat
       if (payloadData['data']['chatType'] == "teamchat") {
         const fromHandle = payloadData['data']['from'];
         const teamMessage = payloadData['text'];
-        console.log(`${this.ansiCodes.RESET}${this.ansiCodes.BOLD}${fromHandle}${this.ansiCodes.RESET} ${this.ansiCodes.BOLD}${this.ansiCodes.GREEN}teamchats${this.ansiCodes.RESET}: ${teamMessage}`);
+        if (this.displayTeamchatMessages) {
+          console.log(`${this.ansiCodes.RESET}${this.ansiCodes.BOLD}${fromHandle}${this.ansiCodes.RESET} ${this.ansiCodes.BOLD}${this.ansiCodes.GREEN}teamchats${this.ansiCodes.RESET}: ${teamMessage}`);
+        }
       }
       // Player Plan
       if (payloadData['data']['chatType'] == "plan") {
         const fromHandle = payloadData['data']['from'];
         const planMessage = payloadData['text'];
-        console.log(`${this.ansiCodes.RESET}${this.ansiCodes.BOLD}${fromHandle}${this.ansiCodes.RESET} ${this.ansiCodes.BOLD}${this.ansiCodes.GREEN}plans${this.ansiCodes.RESET}: ${planMessage}`);
+        if (this.displayPlanMessages) {
+          console.log(`${this.ansiCodes.RESET}${this.ansiCodes.BOLD}${fromHandle}${this.ansiCodes.RESET} ${this.ansiCodes.BOLD}${this.ansiCodes.GREEN}plans${this.ansiCodes.RESET}: ${planMessage}`);
+        }
       }
     }
 
-    // Handle RWHO, WHO, Look
+    // Handle RWHO, WHO, Look, Game Server Messages
     if (payloadData['id'] == "10") {
       //console.log(payloadDataString)
       // Process RWHO String
       if (payloadData['text'].includes('Paintball Net Beginner Server')) {
         const rawRWHOString = payloadData['text'];
         const rwhoObj = this.parseRWHOString(rawRWHOString);
-        //console.log(rwhoObj);
         if (this.rwhoIntervalFirstRun) {
           // First run just get players, do not report anything
           this.rwhoIntervalFirstRun = false;
@@ -333,15 +394,44 @@ class PBNBot {
           // Compare server lists, report logins and logouts
           this.compareServerLists(rwhoObj);
         }
+      } else if (payloadData['text'].includes('GAME: ')) {
+        const payloadMessage = payloadData['text'].replace("GAME: ", '');
+        const messageIgnoreList = [
+          'The game has started without you.',
+          'The game is over.',
+          'The next game is about to start.',
+        ];
+
+        const now = new Date();
+        const utcTime = now.toISOString().split('T')[1].split('.')[0]; // HH:MM:SS format
+        if (payloadMessage.includes('\r\n')) {
+          const messageArray = payloadMessage.split('\r\n');
+          messageArray.forEach((msg, index) => {
+            if (this.displayGameMessages) {
+              console.log(`[UTC ${utcTime}] ${this.ansiCodes.RESET}${this.ansiCodes.BOLD}GAME: ${this.ansiCodes.RESET}${msg}`);
+            }
+          });
+        } else {
+          if (this.displayGameMessages) {
+            console.log(`[UTC ${utcTime}] ${this.ansiCodes.RESET}${this.ansiCodes.BOLD}GAME: ${this.ansiCodes.RESET}${payloadMessage}`);
+          }
+        }
+
+        if (payloadMessage.includes('Paintball Net will shutdown in 10 seconds!')) {
+          console.log('Server shutdown detected!  Attempting to quit and re-login.');
+          this.addCommandEntry('quit');
+        }
       }
     }
 
     // Acknowledge Successful login
     if (payloadData['id'] == '0107') {
+      this.isLoggedIn = true;
       console.log(`✅ ${this.ansiCodes.RESET}${this.ansiCodes.BOLD}[PBN Bot]${this.ansiCodes.RESET} ${this.ansiCodes.GREEN}Login was successful.${this.ansiCodes.RESET}`);
     }
 
     if (payloadData['id'] == 'quit') {
+      this.isLoggedIn = false;
       console.log(`❌ ${this.ansiCodes.RESET}${this.ansiCodes.BOLD}[PBN Bot]${this.ansiCodes.RESET} ${this.ansiCodes.GREEN}Graceful logout detected.${this.ansiCodes.RESET}`);
     }
   }  
@@ -374,8 +464,21 @@ class PBNBot {
         process.exit();
       });
 
+      // Handle SIGTERM gracefully
+      process.on('SIGTERM', async () => {
+        console.log('\nCaught SIGTERM. Cleaning up...');
+        this.rl?.close();
+        await this.shutdown();
+        process.exit();
+      });
+
       // Handle Login sequence and looped services
-      await this.handleLoginSequence();
+      try {
+        await this.handleLoginSequence();
+      } catch (error) {
+        console.log('❌ Error during login:', error);
+        await this.shutdown();
+      }
 
       // Start terminal interface
       this.startTerminalInput();
@@ -434,7 +537,7 @@ class PBNBot {
       }
 
       try {
-        // Add text command to sendCommandList
+        // Add console command to the Command Entry List
         this.addCommandEntry(trimmed);
       } catch (error) {
         console.error(`⚠️ ${this.ansiCodes.RESET}${this.ansiCodes.BOLD}[PBN Bot]${this.ansiCodes.RESET} ${this.ansiCodes.BOLD}${this.ansiCodes.RED}Error sending input${this.ansiCodes.RESET}:`, error.message);
@@ -446,8 +549,6 @@ class PBNBot {
 
   // === After login, watch for login screen to re-appear and detect logout
   async watchForLogoutScreen(selector = `#${this.pbnUsernameTextboxId}`) {
-    //console.log('👀 Watching for logout screen using activeElement check...');
-
     this.logoutInterval = setInterval(async () => {
       try {
         const isUsernameInputActive = await this.page.evaluate((sel) => {
@@ -461,14 +562,19 @@ class PBNBot {
           console.log(`⚠️ ${this.ansiCodes.RESET}${this.ansiCodes.BOLD}[PBN Bot]${this.ansiCodes.RESET} ${this.ansiCodes.BOLD}${this.ansiCodes.RED}Logout detected${this.ansiCodes.RESET} — username input regained focus.`);
           // Cleanup background tasks
           this.logoutDetected = true;
+          this.isLoggedIn = false;
           this.clearAllIntervals();
 
           // Attempt re-login
           // Optionally wait a bit before retrying
           if (this.autoReLogin) {
             setTimeout(async () => {
-              //console.log(`🔁 ${this.ansiCodes.RESET}${this.ansiCodes.BOLD}[PBN Bot]${this.ansiCodes.RESET} Getting ready for automatic re-login. Pausing.`);
-              await this.handleLoginSequence();
+              try {
+                await this.handleLoginSequence();
+              } catch (error) {
+                 console.log('❌ Error during auto re-login:', error);
+                 await this.shutdown();
+              }
             }, this.autoReLoginDelay); // 3-second delay before retry
           }
         }
@@ -489,18 +595,15 @@ class PBNBot {
     ];
     this.activePlayerListInterval = setInterval(async () => {
       Object.keys(this.activePlayersList).forEach(key => {
+
         const timestampDate = new Date()
         const unixTimestamp = Math.floor(timestampDate.getTime() / 1000);
 
         const timeDiff = unixTimestamp - this.activePlayersList[key]['loginTime'];
-        //console.log(key);
-        //console.log (`Time difference: ${timeDiff}`);
-        //console.log(`Login Reported: ${this.active_players_list[key]['loginReported']}`)
 
         if (timeDiff >= this.activePlayerReportTime && !this.activePlayersList[key]['loginReported']) {
           this.activePlayersList[key]['loginReported'] = true;
           if (!userNameIgnoreList.includes(key)) {
-            //console.log(`Report that ${key} is active!`);
             if (this.discordSendUpdates) {
               const shortDateTime = `<t:${this.activePlayersList[key]['loginTime']}:f>`; // e.g., "March 15, 2023 10:30 PM"
               const relativeTime = `<t:${this.activePlayersList[key]['loginTime']}:R>`;   // e.g., "in 2 hours", "5 minutes ago"
@@ -540,7 +643,7 @@ class PBNBot {
   startCommandEntryLoop () {
     this.commandEntryInterval = setInterval(async () => {
       // Check if previous instance is still typing, Do nothing if so
-      if (this.isTyping) return;
+      if (this.isTyping || !this.isLoggedIn) return;
       if (this.sendCommandList.length > 0) {
         // Lock out other instances from typing in the input box
         this.isTyping = true;
@@ -567,7 +670,7 @@ class PBNBot {
     }, this.sendCommandListDelay);
   }
 
-  // === Automatically sends "rwho" command every 1 second
+    // === Automatically sends "rwho" command every 1 second
   startCommandEntryWatcherLoop() {
     this.commandEntryWatcherInterval = setInterval(async () => {
       try {
@@ -582,7 +685,10 @@ class PBNBot {
   // === Polls external API for game list every 60 seconds
   startGamelistPolling() {
     this.gamelistInterval = setInterval(async () => {
+      if (this.activeHTTPRequest) return;
       try {
+        //console.log('Starting HTTP Request.');
+        this.activeHTTPRequest = true;
         //console.log("Fetching games list..");
         const gameList = await this.getGameList();
         //this.latestGameList = gameList;
@@ -615,6 +721,9 @@ class PBNBot {
 
       } catch (error) {
         console.error('⚠️ Failed to fetch game list:', error);
+      } finally {
+        //console.log('Done with HTTP Request.');
+        this.activeHTTPRequest = false;
       }
     }, this.gameListPollingDelay);
   }
@@ -636,12 +745,24 @@ class PBNBot {
       'parabot',
     ];
 
+    const serverControlList = ["beginner", "primary", "tournament"]; // Control list to compare
+    const serverControlObj = { beginner: [], primary: [], tournament: [],};
+    const serverKeys = Object.keys(newServerList);
+    if (!this.haveSameItemsUnordered(serverControlList, serverKeys)) {  // A server went down
+      const missingKeys = this.findMissingKeys(serverControlObj, newServerList);  // Determine which servers are not in the control list
+      missingKeys.forEach(missingServer => {
+        /*
+          Logic can be included here to create a list of servers that are down, and announced to the chat
+          when servers go down and come back up.
+        */
+        //console.log(`${missingServer} server is down.`);
+        newServerList[missingServer] = [];  // Add that server with no players to newServerList to avoid crash
+      });
+    }
     Object.keys(newServerList).forEach(key => {
-      //console.log(key);
 
       // First, compare server_list to this.auto_rwho_servers to find new players
       newServerList[key].forEach(player => {
-        //console.log(player);
         if (this.serverList[key].includes(player) == false) {
 
           // Populate all players to active player list
@@ -650,12 +771,15 @@ class PBNBot {
               loginReported: false,
               server: key,
           }
-          //console.log(this.active_players_list);
 
           if (!userNameIgnoreList.includes(player)) {
             // Send login to chat every time
-            //console.log(`${player} has logged into ${key} server.`);
-            this.addCommandEntry(`chat ${player} has logged into ${key} server.`)  
+            if (this.reportLoginsToConsole) {
+              console.log(`${player} has logged into ${key} server.`);
+            }
+            if (this.reportLoginsToChat) {
+              this.addCommandEntry(`chat ${player} has logged into ${key} server.`);
+            }
           }
         }
       });
@@ -665,10 +789,13 @@ class PBNBot {
       this.serverList[key].forEach(player => {
         if (newServerList[key].includes(player) == false) {
           delete this.activePlayersList[player];
-          //console.log(this.active_players_list);
           if (!userNameIgnoreList.includes(player) && player != 'parabot') {
-            //console.log(`${player} has logged out of ${key} server.`);
-            this.addCommandEntry(`chat ${player} has logged out of ${key} server.`)
+            if (this.reportLoginsToConsole) {
+              console.log(`${player} has logged out of ${key} server.`);
+            }
+            if (this.reportLoginsToChat) {
+              this.addCommandEntry(`chat ${player} has logged out of ${key} server.`);;
+            }
           }
         }
       });
@@ -782,12 +909,45 @@ class PBNBot {
         } else {
             const errorData = await response.json();
             console.error(`❌ ${this.ansiCodes.RESET}${this.ansiCodes.BOLD}[PBN Bot]${this.ansiCodes.RESET} ${this.ansiCodes.RED}Failed to send message to Discord${this.ansiCodes.RESET}:`, response.status, response.statusText, errorData);
-            //alert(`Failed to send message: ${response.status} - ${response.statusText}\n${JSON.stringify(errorData, null, 2)}`);
         }
     } catch (error) {
         console.error(`❌ ${this.ansiCodes.RESET}${this.ansiCodes.BOLD}[PBN Bot]${this.ansiCodes.RESET} ${this.ansiCodes.RED}An error occurred while sending the message${this.ansiCodes.RESET}:`, error);
-        //alert(`An error occurred: ${error.message}`);
     }
+  }
+
+  // === Compare arrays to find missing items
+  haveSameItemsUnordered(arr1, arr2) {
+    // Check if lengths are the same
+    if (arr1.length !== arr2.length) {
+      return false;
+    }
+
+    //  Create shallow copies and sort them
+    const sortedArr1 = [...arr1].sort();
+    const sortedArr2 = [...arr2].sort();
+
+    // Compare sorted arrays element by element
+    for (let i = 0; i < sortedArr1.length; i++) {
+      if (sortedArr1[i] !== sortedArr2[i]) {
+        return false; // Found a difference
+      }
+    }
+
+    return true; // All elements matched
+  }
+
+  // === Compare Objects to find missing keys
+  findMissingKeys(sourceObj, targetObj) {
+    const sourceKeys = Object.keys(sourceObj);
+    const targetKeys = Object.keys(targetObj);
+    const missingKeys = [];
+
+    for (const key of sourceKeys) {
+      if (!targetKeys.includes(key)) {
+        missingKeys.push(key);
+      }
+    }
+    return missingKeys;
   }
 
 }
@@ -799,9 +959,12 @@ class PBNBot {
 // === Boot the bot with config ===
 const controller = new PBNBot({
   closeBrowser: false,
-  url: 'https://play.paintballnet.net',
-  server: 'primary',
-  headless: true,
+  //url: 'https://play.paintballnet.net',
+  url: process.env.PBN_URL,
+  //server: 'primary',
+  server: process.env.PBN_SERVER,
+  //headless: false,
+  headless: (process.env.HEADLESS_MODE || '').toLowerCase() === 'true',
 });
 
 controller.init();

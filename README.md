@@ -4,20 +4,28 @@ PBNBot is a Node.js bot designed to interact with the Paintball-Net game ([https
 
 ## Features
 
-- **Automated Login:** Connects to the specified Paintball Net server (Beginner, Primary, Tournament) using front-end automation.
-- **Real-time Chat Monitoring:** Displays in-game chat, tells, whispers, and team chat directly in your terminal by monitoring WebSocket activity.
+- **Automated Login:** Connects to the specified Paintball Net server (Beginner, Primary, or Tournament) using credentials from the `.env` file.
+- **Real-time Chat Monitoring:** Displays a wide variety of in-game communications directly in your terminal, with toggles for each type:
+  - General Chat
+  - Tells & Rtells
+  - Says & Whispers
+  - Teamchat & Plans
+  - Server `GAME:` messages
 - **Automated Commands:**
-  - `look`: Sends "look" command periodically to prevent idle disconnection via front-end automation.
-  - `rwho`: Sends "rwho" command periodically to monitor active players via front-end automation.
-- **Player Activity Tracking:** Detects player logins and logouts by monitoring WebSocket activity, and can report them to a Discord webhook. **It also reports real-time login and logout events directly to the in-game chat.**
-- **Command Queue:** Allows you to queue commands from the terminal, which the bot sends to the game sequentially using front-end automation.
-- **Automatic Re-login:** Detects disconnections and attempts to re-login automatically.
-- **Discord Integration:** Sends updates (e.g., player logins) to a specified Discord channel.
-- **Configurable**: Easily adjust settings like server, headless mode, and various timing options.
+  - `look`: Periodically sends the "look" command to prevent being disconnected for being idle.
+  - `rwho`: Periodically sends the "rwho" command to monitor active players.
+- **Player Activity Tracking:** Detects player logins and logouts by monitoring WebSocket activity. It can be configured to report these events to:
+  - The local console.
+  - The in-game chat.
+  - A Discord webhook.
+- **Automated Tell Replies:** The bot can automatically reply to players who send it a `/tell` with a configurable, helpful message.
+- **Command Queue:** Allows you to queue commands from the terminal, which the bot sends to the game sequentially to prevent spamming.
+- **Automatic Re-login:** Detects disconnections and automatically attempts to re-login after a configurable delay.
+- **Extensive Configuration:** Nearly every feature, from timing intervals to message display, can be enabled, disabled, or modified via the .env file without changing the code.
 
 ## Getting Started
 
-These instructions will get you a copy of the project up and running on your local machine for development and testing purposes.
+These instructions will get you a copy of the project up and running on your local machine.
 
 ### Prerequisites
 
@@ -41,27 +49,76 @@ If you have a Git repository, clone it:
     Open your terminal in the project directory and run:
 
     ```bash
-    cd pbn-bot/
     npm install
     ```
 
 ## Configuration
 
-PBNBot uses environment variables for sensitive information and configuration. Create a file named .env in the root directory of your project (the same directory as `main.js`).
+PBNBot uses a `.env` file to manage all its settings. Create a file named .env in the root directory of your project. Below is a comprehensive list of the available variables and their functions.
 
-Here's an example `.env` file:
+### Example `.env` file
 
 ```bash
+# --- Core Credentials & Connection ---
 PBN_HANDLE="YourGameHandle"
 PBN_PASSWORD="YourGamePassword"
+PBN_URL="https://play.paintballnet.net"
+# Choose server: beginner, primary, tournament
+PBN_SERVER="primary"
+HEADLESS_MODE=true
+
+# --- Discord Integration ---
 DISCORD_WEBHOOK_URL="https://discord.com/api/webhooks/YOUR_WEBHOOK_ID/YOUR_WEBHOOK_TOKEN"
 DISCORD_AVATAR_URL="https://example.com/your-bot-avatar.png"
-```
 
-- `PBN_HANDLE`: Your username for Paintball Net.
-- `PBN_PASSWORD`: Your password for Paintball Net.
-- `DISCORD_WEBHOOK_URL`: The URL for your Discord webhook. You can create one in your Discord server's channel settings (Integrations -> Webhooks -> New Webhook).
-- `DISCORD_AVATAR_URL`: (Optional) A URL to an image that will be used as the avatar for messages sent by the bot to Discord.
+# --- Bot Behavior Toggles ---
+AUTO_RE_LOGIN=true
+LOGOUT_INTERVAL_ENABLED=true
+LOOK_INTERVAL_ENABLED=true
+RWHO_INTERVAL_ENABLED=true
+# Alternative player tracking via API, defaults to false
+GAME_LIST_INTERVAL_ENABLED=false
+ACTIVE_PLAYER_LIST_ENABLED=true
+DISCORD_SEND_UPDATES=true
+REPORT_LOGINS_TO_CHAT=true
+REPORT_LOGINS_TO_CONSOLE=false
+
+# --- Message Display Toggles ---
+DISPLAY_GAME_MESSAGES=true
+DISPLAY_CHAT_MESSAGES=true
+DISPLAY_TELL_MESSAGES=true
+DISPLAY_RTELL_MESSAGES=true
+DISPLAY_SAY_MESSAGES=true
+DISPLAY_WHISPER_MESSAGES=true
+DISPLAY_TEAMCHAT_MESSAGES=true
+DISPLAY_PLAN_MESSAGES=true
+
+# --- Timing and Delay Settings (in milliseconds) ---
+# 2 minutes
+AUTO_RE_LOGIN_DELAY=120000 
+# 3 minutes
+AUTO_LOOK_DELAY=180000  
+# 1 second            
+AUTO_RWHO_DELAY=1000
+# 0.5 seconds              
+SEND_COMMAND_LIST_DELAY=500
+# Delay between keystrokes (ms)    
+BOT_TYPING_DELAY=0                  
+
+# --- Player Reporting Timings ---
+# (ms) How often to check the active player list
+ACTIVE_PLAYER_LIST_DELAY=1000
+# (seconds) How long a player must be online before being reported to Discord
+ACTIVE_PLAYER_REPORT_TIME=300
+
+# --- Browser DOM Element IDs (Rarely need changing) ---
+PBN_BEGINNER_SERVER_ID=Component1133
+PBN_PRIMARY_SERVER_ID=Component1135
+PBN_TOURNAMENT_SERVER_ID=Component1137
+PBN_USERNAME_TEXTBOX_ID=Component826
+PBN_PASSWORD_TEXTBOX_ID=Component830
+PBN_MAIN_INPUT_TEXTBOX_ID=Component598
+```
 
 ## Running the Bot
 
@@ -71,75 +128,33 @@ To start the bot, open your terminal in the project directory and run:
 node main.js
 ```
 
-The bot will launch a Puppeteer browser instance (either visible or headless, depending on configuration), log into Paintball Net, and start its background tasks.
+The bot will launch a Puppeteer browser instance (either visible or headless, depending on your `.env` configuration), log into Paintball Net, and begin its tasks.
 
 ### Command Line Interface (CLI)
 
-Once the bot is running, you'll see a `>` prompt in your terminal. You can type commands here and press Enter to send them directly to the game.
-
-- Type any in-game command (e.g., `chat hello`, `tell PlayerName message`, `rwho`).
+Once the bot is running, you will see a `>` prompt in your terminal. You can type any in-game command here and press Enter to add it to the bot's command queue.
 
 - To exit the bot gracefully, type `exit` and press `Enter`.
-
-## Customization
-
-You can customize the bot's behavior by modifying the `PBNBot` constructor parameters in `main.js`:
-
-```javascript
-const controller = new PBNBot({
-  closeBrowser: false, // Set to true to automatically close the browser when the bot exits
-  url: 'https://play.paintballnet.net', // The game URL (usually no need to change)
-  server: 'primary', // 'beginner', 'primary', or 'tournament' - selects which server to join
-  headless: true, // Set to false to see the browser UI (useful for debugging)
-});
-```
-
-Additionally, you can enable/disable various background services and adjust timing options within the `PBNBot` class's constructor:
-
-```javascript
-// Enable / Disable Looped Background services
-this.autoReLogin = true; // Enable or Disable Re-login after logout detected
-this.lookIntervalEnabled = true;  // Enable auto-look for anti-idle reasons
-this.rwhoIntervalEnabled = true;  // Sends RWHO Command at set interval
-this.gameListIntervalEnabled = false;  // Enable Retrieve player list from backend web api
-this.activePlayerListEnabled = true; // Reports active users over Discord, works with this.discordSendUpdates enabled
-this.commandEntryIntervalEnabled = true; // Enable Command list entry loop.  DO NOT DISABLE
-this.commandEntryWatcherIntervalEnabled = true; // Enable Command Entry list watcher to monitor command queue
-this.logoutIntervalEnabled = true; // Enable Watching for logout, and re-login
-this.discordSendUpdates = true; // Enable sending Discord Updates, works with this.activePlayerListEnabled
-
-// Bot Timing Options
-this.autoReLoginDelay = 10 * 60 * 1000; // Time to wait (ms) for re-login (Wait 10 minutes)
-this.autoLookDelay = 3 * 60 * 1000; // Anti Idle, Send Look command every 3 minutes (ms)
-this.gameListPollingDelay = 5000;  // Time to Send HTTP Request for server list. (ms) (Every 5 seconds)
-this.sendCommandListDelay = 750; // Time in between sending command to game. (ms) (Every 3/4 of a second)
-this.commandEntryWatcherDelay = 10 * 60 * 1000; // Time between reporting how many commands are in queue to send (ms) 
-this.activePlayerListDelay = 1000;  // Time to check Active player list for players to report to Discord. (ms) (1 second)
-this.activePlayerReportTime = 300 // Time to Report active player to Discord. (seconds) (5 minutes)
-this.autoRWHODelay = 1500;  // Time to send RWHO command to game, (ms) (1.5 Seconds)
-this.botTypingDelay = 15; // (ms) delay between keystrokes, can simulate better typing
-```
 
 ## Troubleshooting
 
 - **Bot doesn't log in**:
-  - Double-check your `.env` file for correct `PBN_HANDLE` and `PBN_PASSWORD`.
-  - Ensure the `server` option in the `PBNBot` constructor is set correctly (`'primary'`, `'beginner'`, or `'tournament'`).
-  - Try setting `headless: false` in the PBNBot constructor to watch the browser and see what's happening.
+  - Double-check your `.env` file for correct `PBN_HANDLE`, `PBN_PASSWORD`, and `PBN_SERVER`.
+  - Try setting `HEADLESS_MODE=false` in your `.env` file to watch the browser and see what's happening.
 
 - **Discord messages not sending:**
-  - Verify `DISCORD_WEBHOOK_URL` in your `.env` file is correct and active.
-  - Check if `discordSendUpdates` is set to `true` in the bot's configuration.
-  - Look for error messages in your terminal output.
-- "Error during initialization: Error: Protocol error (Target.createCDPSession): Target closed."
+  - Verify your `DISCORD_WEBHOOK_URL` in `.env` is correct.
+  - Ensure `DISCORD_SEND_UPDATES` is set to `true` in your `.env` file.
+
+- **"Error during initialization: Error: Protocol error (Target.createCDPSession): Target closed."**
   - This often happens if the browser crashes or is closed unexpectedly. Ensure you have enough system resources.
 
 - **"Failed to fetch game list:"**
-- This indicates an issue with the bot's ability to reach `drm-pbn-be.com:2998`. Check your internet connection and any firewalls. The `rejectUnauthorized: false` setting is used to bypass SSL certificate issues, but network connectivity is still required.
+  - This error occurs if the bot can't reach the external game API. It only affects the `GAME_LIST_INTERVAL_ENABLED` feature. Check your internet connection and firewall settings.
 
 ## Contributing
 
-> Note: This project is a reboot from a previous, larger codebase that utilized both Python (Selenium) and JavaScript. This current version aims for near-equal functionality with a significantly smaller and more streamlined JavaScript-only codebase.  The old Python-Selenium code can still be found [here](https://github.com/pnwarner/pbn-bot/tree/archive/old-codebase).
+> Note: This project is a reboot from a previous, larger codebase that utilized both Python (Selenium) and JavaScript. This current version aims for near-equal functionality with a significantly smaller and more streamlined JavaScript-only codebase.
 
 1. Fork the repository.
 2. Create your feature branch (`git checkout -b feature/AmazingFeature`).
@@ -152,4 +167,5 @@ this.botTypingDelay = 15; // (ms) delay between keystrokes, can simulate better 
 ## Contact
 
 ### Author
-  - [pnwarner](https://github.com/pnwarner) | [patrick.warner@paradoxresearch.net](mailto:patrick.warner@paradoxresearch.net) 
+
+- [pnwarner](https://github.com/pnwarner) | [patrick.warner@paradoxresearch.net](mailto:patrick.warner@paradoxresearch.net)
