@@ -61,6 +61,7 @@ const config = {
   displayTeamchatMessages: toBoolean(process.env.DISPLAY_TEAMCHAT_MESSAGES), // Display 'teamchat' messages to console
   displayPlanMessages: toBoolean(process.env.DISPLAY_PLAN_MESSAGES), // Display 'plan' messages to console
   autoReplyTellMessages: toBoolean(process.env.AUTO_REPLY_TELL_MESSAGES), // Enable Auto-reply to Tell Messages
+  autoReplyChatMessages: toBoolean(process.env.AUTO_REPLY_CHAT_MESSAGES), // Enable Auto-reply to Chat Messages
 
   // === Bot Timing Options
   autoReLoginDelay: parseInt(process.env.AUTO_RE_LOGIN_DELAY, 10), // Time to wait (ms) for re-login (Wait 10 minutes) 10 * 60 * 1000
@@ -124,6 +125,7 @@ if (preset) {
         config.displayGameMessages = false;
         config.displayDebugData = false;
         config.autoReplyTellMessages = true;
+        config.autoReplyChatMessages = true;
         setDefaultIntervalSettings();
         break;
       case 'secondary':
@@ -145,6 +147,7 @@ if (preset) {
         config.displayGameMessages = false;
         config.displayDebugData = false;
         config.autoReplyTellMessages = true;
+        config.autoReplyChatMessages = true;
         setDefaultIntervalSettings();
         break;
       case 'chat':
@@ -166,6 +169,7 @@ if (preset) {
         config.displayGameMessages = false;
         config.displayDebugData = false;
         config.autoReplyTellMessages = false; // Chat mode does not auto-reply to tell messages
+        config.autoReplyChatMessages = false; // Chat mode does not auto-reply to chat messages
         setDefaultIntervalSettings();
         break;
       case 'testing':
@@ -187,6 +191,7 @@ if (preset) {
         config.displayGameMessages = true; // Testing mode displays game messages in console
         config.displayDebugData = true; // Testing mode displays debug data in console
         config.autoReplyTellMessages = true;
+        config.autoReplyChatMessages = true;
         setDefaultIntervalSettings();
         break;
       case 'debug':
@@ -208,6 +213,7 @@ if (preset) {
         config.displayGameMessages = true; // Debug mode displays game messages in console
         config.displayDebugData = true; // Debug mode displays debug data in console
         config.autoReplyTellMessages = true;
+        config.autoReplyChatMessages = true;
         setDefaultIntervalSettings();
         break;
       case 'none':

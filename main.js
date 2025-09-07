@@ -4,6 +4,7 @@ const puppeteer = require('puppeteer');
 const readline = require('readline');
 const config = require('./modules/config');
 const DiscordService = require('./modules/discord');
+const PBNVisualizer = require('./modules/pbn-visualizer');
 
 class PBNBot {
   constructor() {
@@ -38,7 +39,18 @@ class PBNBot {
     this.activeHTTPRequest = false; // Do Not Edit, Lock flag for gameListInterval
     this.selectedServer = '';
     this.activeGame = false; // Flag for active game session
+    this.activeGameMode = null; // String that stores name of active game mode
+    this.activeGamePlayers = null; // Number of players in active game
     this.activeGameMessageId = '';  // Discord Message Id for active game session, Do Not Edit
+    this.gameMap = {
+      width: null,
+      height: null,
+      season: null,
+      seasonSpecial: null,
+      snowDay: null,
+      lines: null,
+      text: null
+    };
     this.serverList = {  // Master Server List, Do Not Edit
       beginner: [],
       primary: [],
@@ -61,13 +73,6 @@ class PBNBot {
       },
       */
     };
-    this.serverStats = {
-      totalGames: this.readTotalGamesFromFile(),
-      playerHandles: this.readPlayerHandlesFromFile(),
-      gamesLost: this.readGamesLostFromFile(),
-    };
-
-
     // === ANSI Codes (move to separate module)
     this.ansiCodes = {  // ANSI Codes for Terminal Decoration
       // Define ANSI escape codes as constants
@@ -112,7 +117,13 @@ class PBNBot {
       BG_BRIGHT_MAGENTA: '\x1b[105m',
       BG_BRIGHT_CYAN: '\x1b[106m',
       BG_BRIGHT_WHITE: '\x1b[107m',
-    }
+    };
+    // === Server Statistics
+    this.serverStats = {
+      totalGames: this.readTotalGamesFromFile(),
+      playerHandles: this.readPlayerHandlesFromFile(),
+      gamesLost: this.readGamesLostFromFile(),
+    };
     // === Import Discord Services
     this.discord = new DiscordService(this.config.discordWebhookUrl, {
       logToConsole: this.config.discordStatusToConsole,
@@ -120,7 +131,7 @@ class PBNBot {
       this.ansiCodes,
       this.config.displayDebugData,
     );
-    
+    this.pbnv = new PBNVisualizer(this.ansiCodes);
   }
 
   // ===
@@ -303,6 +314,9 @@ class PBNBot {
         if (this.config.displayChatMessages) {
           console.log(`${this.ansiCodes.RESET}${this.ansiCodes.BOLD}${this.ansiCodes.BLUE}${chatHandle}${this.ansiCodes.RESET}: ${chatMessage}`);
         }
+        if (this.config.autoReplyChatMessages) {
+          this.parseChatString(chatHandle, chatMessage);
+        }
       }
       //Player TELL
       if (payloadData['data']['chatType'] == "37") {
@@ -361,9 +375,12 @@ class PBNBot {
       }
     }
 
+    // [UTC 15:14:14] {"id":"10","text":"Statistics for THIS game: (Survival)"}
+    // [UTC 19:05:38] {"id":"10","text":"  10 people started, 10 surviving (0 bots), 10 minutes left in this game."}
+
     // Handle RWHO, WHO, Look, Game Server Messages
     if (payloadData['id'] == "10") {
-      //console.log(payloadDataString)
+      // console.log(payloadDataString)
       // Process RWHO String
       if (payloadData['text'].includes('Paintball Net Beginner Server')) {
         const rawRWHOString = payloadData['text'];
@@ -379,6 +396,7 @@ class PBNBot {
         }
       } else if (payloadData['text'].includes('GAME: ')) {
         const payloadMessage = payloadData['text'].replace("GAME: ", '');
+        //console.log(payloadMessage);
         // GAME: a raptor bot splatted paradox!
         // GAME: There were no survivors.
         const messageIgnoreList = [
@@ -409,9 +427,14 @@ class PBNBot {
 
         if (payloadMessage.includes('The game has started without you.')) {
           this.activeGame = true;
+          // Detect game mode and opponents from message
+          // console.log('Sending game command');
+          this.addCommandEntry('game');
+          const gameMode = await this.returnActiveGameMode(); // Wait for activeGameMode to be set 
+          const gamePlayers = await this.returnActiveGamePlayers(); // Wait for activeGamePlayers to be set
           if (this.config.reportGameStatus) {
             if (this.config.reportGameStatusToConsole) {
-              console.log('A game has started!')
+              console.log(`A ${gameMode.toLowerCase()} game has started!`);
             }
             
             if (this.config.reportGameStatusToDiscord) {
@@ -419,7 +442,7 @@ class PBNBot {
               const unixTimestamp = Math.floor(timestampDate.getTime() / 1000);
               const shortDateTime = `<t:${unixTimestamp}:f>`;
               const relativeTime = `<t:${unixTimestamp}:R>`;
-              const discordString = `A game has started on ${this.config.server} server! ${relativeTime} (${shortDateTime})`;
+              const discordString = `A ${gameMode.toLowerCase()} game with ${gamePlayers} opponents has started on ${this.config.server} server! ${relativeTime} (${shortDateTime})`;
               if (this.config.discordSendUpdates) {
                 let avatarUrl = '';
                 switch (this.config.server) {
@@ -445,6 +468,8 @@ class PBNBot {
 
         if (payloadMessage.includes('The game is over.')) {
           this.activeGame = false;
+          this.activeGameMode = null;
+          this.activeGamePlayers = null;
           //this.serverStats.totalGames += 1;
           this.incrementTotalGames(); // Increment total games
           if (this.config.reportGameStatus) {
@@ -468,6 +493,21 @@ class PBNBot {
           //this.serverStats.gamesLost += 1;
           this.incrementGamesLost();
         }
+
+      } else if (payloadData['text'].includes('Statistics for THIS game:')) {
+        const match = payloadData['text'].match(/\(([^)]+)\)/);
+        //console.log('Detected game command response for game mode.');
+        if (match) {
+          //console.log(match[1]); // Output: Survival
+          this.activeGameMode = match[1];
+        }
+      } else if (payloadData['text'].includes('people started')) {
+        const match = payloadData['text'].match(/(\d+)\s+people\s+started/);
+        if (match) {
+          const startedCount = parseInt(match[1], 10);
+          //console.log("People started:", startedCount);
+          this.activeGamePlayers = startedCount;
+        }
       }
     }
 
@@ -480,6 +520,24 @@ class PBNBot {
     if (payloadData['id'] == 'quit') {
       this.isLoggedIn = false;
       console.log(`❌ ${this.ansiCodes.RESET}${this.ansiCodes.BOLD}[PBN Bot]${this.ansiCodes.RESET} ${this.ansiCodes.GREEN}Graceful logout detected.${this.ansiCodes.RESET}`);
+    }
+
+    if (payloadData['id'] == '17') {
+      this.gameMap.width = payloadData['data']['width'];
+      this.gameMap.height = payloadData['data']['height'];
+      this.gameMap.season = payloadData['data']['season'];
+      this.gameMap.seasonSpecial = payloadData['data']['seasonSpecial'];
+      this.gameMap.snowDay = payloadData['data']['snowDay'];
+      this.gameMap.lines = payloadData['data']['lines'];
+      // Uncomment to log map data to console
+      //console.log(this.gameMap);
+      //this.printGameMap();
+      this.pbnv.setGameMap(this.gameMap);
+      //this.pbnv.printGameMap();
+      this.pbnv.exportMapToFile();
+      this.pbnv.exportRawMapToFile();
+      this.pbnv.setTerrainInfo();
+      this.pbnv.exportMapToPNG();
     }
   }  
 
@@ -599,6 +657,18 @@ class PBNBot {
         return;
       } else if (trimmed.toLowerCase() === 'resetstats') {
         this.resetStats();
+        return;
+      } else if (trimmed.toLowerCase() === 'printmap') {  
+        this.pbnv.printGameMap();
+        return;
+      } else if (trimmed.toLowerCase() === 'printterrain') {
+        this.pbnv.printTerrainInfo();
+        return;
+      } else if (trimmed.toLowerCase() === 'exportmapimage') {
+        this.pbnv.exportMapToPNG('data/game_map.png', false);
+        return;
+      } else if (trimmed.toLowerCase() === 'exportrawmapimage') {
+        this.pbnv.exportMapToPNG('data/game_map_raw.png', true);
         return;
       }
 
@@ -1007,7 +1077,7 @@ class PBNBot {
 
   // === Process TELL string
   parseTellString(username, tellMessage) {
-    const defaultReplyString = `Hello ${username}, I'm just a bot here to report login, and game activity to the Discord server and game chatroom. I can also offer help and tips whenever you need. Options: [help] [player list] [stats] — Example: /tell ${this.config.pbnHandle} help`;
+    const defaultReplyString = `Hello ${username}, I'm just a bot here to report login, and game activity to the Discord server and game chatroom. I can also offer help and tips whenever you need. Options: [help] [player list] [reset] [stats] [terrain] — Example: /tell ${this.config.pbnHandle} help`;
     const message = tellMessage.toLowerCase();
     let msg = '';
     
@@ -1118,7 +1188,11 @@ class PBNBot {
       }
       else if (message.includes('new')) {
         const messages = [
-            'There are no tips for new players yet.  Please check back later.'
+            'You can set the number of bots released in game with the "/bots" command. It can be set from 0 - 9.  To get the maximum amount of bots, and tokens released in game, use the command: "/bots 9". - {==paradox==}',
+            'You can reset your own games for $100 pbn cash with the command: "/resetgames". - {==paradox==}',
+            'The X-ray kit or x-ray glasses will help you see bots and tokens from further away. X-ray is essential to help gain more pbn cash. - {==paradox==}',
+            'Turbo and swim kits are essential for faster movement on all terrain. Make sure your shoes or boots are modified with them. - {==paradox==}',
+
           ];
           const totalTips = messages.length;
           const tipNum = Math.floor(Math.random() * totalTips);
@@ -1135,11 +1209,41 @@ class PBNBot {
     else if (message.includes('player list') || message.includes('playerlist')) {
       msg = `Today's Active Players: ${this.serverStats.playerHandles.join(', ')}`;
     }
-    else {
+    else if (message.includes('reset')) {
+      msg = 'I am not an admin, and cannot reset games.  If an admin is not on to reset games, you can reset your own games for $100 pbn cash with the command: "/resetgames". Otherwise, you can purchase more daily games in a store for $2500 with the command "/buy moregames".';
+    }
+    else if (message.includes('terrain')) {
+      const terrainPercents = this.pbnv.getTerrainPercent();
+      msg = `Current map terrain breakdown: Grass: ${terrainPercents.Grass}, Mountain: ${terrainPercents.Mountain}, Water: ${terrainPercents.Water}, Woodlands: ${terrainPercents.Woodlands}, Jungle: ${terrainPercents.Jungle}, Valley: ${terrainPercents.Valley}, Desert ${terrainPercents.Desert}, Hill: ${terrainPercents.Hill}}.`;
+    } else {
       msg = defaultReplyString;
     }
     const commandString = `tell ${username} ${msg}`;
     this.addCommandEntry(commandString);
+  }
+
+  // === Process CHAT string
+  parseChatString (chatHandle, chatMessage) {
+    if (!this.userNameIgnoreList.includes(chatHandle)) {
+      let chatString = chatMessage.toLowerCase();
+      let chatStringArray = chatString.split(' ');
+      if (chatStringArray[0] == 'parabot') {
+        if (chatStringArray[1] == 'roll') {
+          const diceTable = {
+            0: '⚀',
+            1: '⚁',
+            2: '⚂',
+            3: '⚃',
+            4: '⚄',
+            5: '⚅'
+          };
+          const roll1 = Math.floor(Math.random() * 6);
+          const roll2 = Math.floor(Math.random() * 6);
+          const rollResult = `${chatHandle} rolled: ${diceTable[roll1]} ${roll1 + 1}, ${diceTable[roll2]} ${roll2 + 1}. (Total: ${roll1 + roll2 + 2})`;
+          this.addCommandEntry(`chat ${rollResult}`);
+        }
+      }
+    }
   }
 
   // ===
@@ -1343,6 +1447,22 @@ class PBNBot {
       }
     }
     return missingKeys;
+  }
+
+  // === Wait for this.activeGameMode to be set, then return it
+  async returnActiveGameMode() {
+    while (this.activeGameMode === null) {
+      await new Promise(resolve => setTimeout(resolve, 100));
+    }
+    return this.activeGameMode;
+  }
+
+  // === Wait for this.activeGamePlayers to be set, then return it
+  async returnActiveGamePlayers() {
+    while (this.activeGamePlayers === null) {
+      await new Promise(resolve => setTimeout(resolve, 100));
+    }
+    return this.activeGamePlayers;
   }
 
 }

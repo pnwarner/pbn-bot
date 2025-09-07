@@ -10,11 +10,29 @@
 
 - **Real-time Chat Monitoring:** Monitors WebSocket traffic to display all in-game communication directly in your terminal, complete with color-coding for readability. It captures `chat`, `tell`, `say`, `whisper`, `teamchat`, and `plan` messages.
 
+- **Game Map Visualization & Analysis:**
+  
+  - **Automatic Map Capture:** When you enter a new area, the bot automatically intercepts the game map data sent by the server.
+  - **Terrain Analysis:** Calculates the count and percentage of each terrain type on the current map (e.g., Grass, Mountain, Water, etc.).
+  - **Map File Export:** Automatically saves two text files to the `./data/` directory:
+    - `raw_game_map.txt`: A direct copy of the map layout.
+    - `game_map.txt`: A "radially inverted" version of the map (quadrants are swapped for a different perspective).
+  - **In-Game Terrain Reports:** Players can request a breakdown of the current map's terrain via a tell command.
+  - **View the map in the terminal:** Once logged in just enter the `printmap` command directly in the terminal.
+  - **Automatic PNG Export:** Automatically generates and saves a PNG image of the radially inverted game map to ./data/game_map.png whenever a new map is loaded.
+  - **Print terrain info to the terminal:** Once logged in, use the `printterrain` command to get terrain information in the terminal.
+
 - **Interactive Help Bot:**
 
   - Automatically replies to `tell` messages with a helpful default message.
 
   - Features a built-in, multi-level help system. Players can send `tell <YourBot> help` to get tips on game modes, information for new players, server stats, and details about the elusive secret store, including item lists by category.
+  
+  - Players can now request map data by sending `tell <YourBot> terrain` to get a percentage breakdown of the current map's terrain types.
+
+- **In-Game Chat Commands:**
+
+  - **Dice Roll:** Any player can type `parabot roll` in the public chat to have the bot roll two six-sided dice and announce the result.
 
 - **Persistent Stat Tracking**:
 
@@ -30,7 +48,7 @@
 
   - Reports when players have been active for a configurable amount of time.
 
-  - Announces when a new game starts on the server.
+  - Announces when a new game starts, the game mode, and player count on the server.
 
   - **Stateful Messages:** When a game ends or a player logs out, the bot automatically deletes the corresponding notification message from Discord, keeping the channel clean and relevant.
 
@@ -149,6 +167,7 @@ DISPLAY_WHISPER_MESSAGES=true
 DISPLAY_TEAMCHAT_MESSAGES=true
 DISPLAY_PLAN_MESSAGES=true
 AUTO_REPLY_TELL_MESSAGES=true
+AUTO_REPLY_CHAT_MESSAGES=true
 
 # === 🛠️ Bot Functionality
 COMMAND_ENTRY_INTERVAL_ENABLED=true
@@ -277,6 +296,7 @@ The bot's behavior is primarily controlled by the BOT_PRESET_MODE in your .env f
 | `DISPLAY_TEAMCHAT_MESSAGES` | Show teamchat messages                           | `true`            |
 | `DISPLAY_PLAN_MESSAGES`     | Show plan messages                               | `true`            |
 | `AUTO_REPLY_TELL_MESSAGES`  | Auto-reply to tell messages                      | `true`            |
+| `AUTO_REPLY_CHAT_MESSAGES`  | Auto-reply to chat messages                      | `true`            |
 
 ---
 
@@ -308,6 +328,20 @@ Once running, a `>` prompt will appear in your terminal. You can type any in-gam
 
 - `resetstats`: Resets all persistent stats (total games, games lost, player handles) to zero.
 
+- `printmap`: Prints the current game map (radially inverted) to the console with ANSI colors.
+
+  - ![Terminal Image](./media/terminal.png)  
+
+- `printterrain`: Displays the terrain counts and percentage breakdown for the current map.
+
+- `exportmapimage`: Manually exports the current radially inverted game map to `./data/game_map.png`.
+
+  - ![Game Map](./media/game_map.png)
+
+- `exportrawmapimage`: Manually exports the current raw (original layout) game map to `./data/game_map_raw.png`.
+
+  - ![Raw Map Image](./media/game_map_raw.png)
+
 ## Troubleshooting
 
 - **Error: Failed to log in:**
@@ -331,6 +365,16 @@ Once running, a `>` prompt will appear in your terminal. You can type any in-gam
 - **Failed to fetch game list**:
 
   - This error appears when using the `GAME_LIST_INTERVAL_ENABLED=true` setting and indicates a network issue preventing the bot from reaching the game's API. Check your firewall and internet connection.
+
+## Known Issues
+
+- **Discord Webhook Timeouts:**
+
+  - Occasionally, a request to post a message to Discord may time out. When this happens, the bot fails to receive the unique `message ID` for the update it just sent.
+
+  - Because the bot doesn't have the message ID, it cannot automatically delete the message later (e.g., when a player logs out or a game ends).
+
+  - This can result in "orphaned" status messages remaining in the Discord channel. These messages must be manually removed.
 
 ## Contributing
 
