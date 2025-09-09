@@ -1,8 +1,8 @@
-
 class PBNVisualizer {
     constructor(ansiCodes = {}) {
         this.ansiCodes = ansiCodes;
         this.gameMap = {};
+        this.correctedMap = [];
         this.colorCharMap = {
             '_': `${this.ansiCodes.BG_BRIGHT_GREEN} ${this.ansiCodes.RESET}`, // Grass
             '^': `${this.ansiCodes.BG_YELLOW}${this.ansiCodes.BLACK}${this.ansiCodes.BOLD}^${this.ansiCodes.RESET}`, // Mountain
@@ -65,6 +65,7 @@ class PBNVisualizer {
 
     setGameMap(mapData) {
         this.gameMap = mapData;
+        this.correctedMap = this.generateInvertedGameMap(false); // Store non-colored map lines
     }
 
     isGameMapSet() {
@@ -130,7 +131,7 @@ class PBNVisualizer {
         return this.terrainPercent;
     }
 
-    printGameMap(coloredMap = true, exportMap = false) {
+    generateInvertedGameMap(coloredMap = true) {
         const { lines } = this.gameMap;
 
         if (!Array.isArray(lines) || lines.length === 0) {
@@ -157,17 +158,9 @@ class PBNVisualizer {
             // Replace characters with colored versions
             if (coloredMap) {
                 const coloredLine = line.split('').map(char => this.colorCharMap[char] || char).join('');
-                if (exportMap) {
-                    exportedMap.push(coloredLine);
-                } else {
-                    console.log(coloredLine);
-                }
+                exportedMap.push(coloredLine);
             } else {
-                if (exportMap) {
-                    exportedMap.push(line);
-                } else {
-                    console.log(line);
-                }
+                exportedMap.push(line);
             }
         }
 
@@ -177,33 +170,32 @@ class PBNVisualizer {
             // Replace characters with colored versions
             if (coloredMap) {
                 const coloredLine = line.split('').map(char => this.colorCharMap[char] || char).join('');
-                if (exportMap) {
-                    exportedMap.push(coloredLine);
-                } else {
-                    console.log(coloredLine);
-                }
+                exportedMap.push(coloredLine);
             } else {
-                if (exportMap) {
-                    exportedMap.push(line);
-                } else {
-                    console.log(line);
-                }
+                exportedMap.push(line);
             }
         }
 
-        if (exportMap) {
-            return exportedMap; 
-        }
+        return exportedMap; 
     }
 
-    printRawMap() {
-        const { lines } = this.gameMap;
-        if (!Array.isArray(lines) || lines.length === 0) {
-            console.log('Game map is empty or invalid.');
+    printMap(mapArray = [], coloredMap = true) {
+        if (!mapArray || mapArray.length === 0) {
+            console.log('Corrected map is empty or not set.');
             return;
         }
-        console.log('Raw Game Map:');
-        lines.forEach(line => console.log(line));
+        //console.log('Corrected Game Map:');
+        // Print with colors
+        if (coloredMap) {
+            mapArray.forEach(line => {
+                const coloredLine = line.split('').map(char => this.colorCharMap[char] || char).join('');
+                console.log(coloredLine);
+            });
+        } else {
+            mapArray.forEach(line => console.log(line));
+        }
+        // Print without colors
+        //this.correctedMap.forEach(line => console.log(line));
     }
 
     printTerrainInfo() {
@@ -221,7 +213,7 @@ class PBNVisualizer {
             if (rawGameMap) {
                 return this.gameMap.lines;
             } else {
-                return this.printGameMap(false, true); // Get non-colored map lines for PNG export
+                return this.generateInvertedGameMap(false); // Get non-colored map lines for PNG export
             }
         }
 
@@ -264,7 +256,7 @@ class PBNVisualizer {
     }
 
     exportMapToFile(filename = 'data/game_map.txt', coloredMap = false) {
-        const mapLines = this.printGameMap(coloredMap, true);
+        const mapLines = this.generateInvertedGameMap(coloredMap);
         const fs = require('fs');
         // Check if file exists, if not, create it
         if (!fs.existsSync(filename)) {
@@ -297,6 +289,26 @@ class PBNVisualizer {
         // Write the map lines to the file
         fs.writeFileSync(filename, lines.join('\n'), 'utf8');
         //console.log(`Raw game map exported to ${filename}`);    
+    }
+
+    addPlayerToCorrectedMap(row, col) {
+        const originalLine = this.correctedMap[row];
+        const updatedLine = originalLine.slice(0, col) + 'P' + originalLine.slice(col + 1);
+        this.correctedMap[row] = updatedLine;
+    }
+
+    // === Convert logical coordinates to array indices
+    // For getting array indexes of position on inverted map
+    toArrayIndex(logicalX, logicalY) {
+        const MAP_WIDTH = 150;
+        const MAP_HEIGHT = 100;
+
+        const X_OFFSET = Math.floor(MAP_WIDTH / 2);   // 75
+        const Y_OFFSET = Math.floor(MAP_HEIGHT / 2);  // 50
+        const col = (logicalX + X_OFFSET + MAP_WIDTH) % MAP_WIDTH;
+        const row = (logicalY + Y_OFFSET + MAP_HEIGHT) % MAP_HEIGHT;
+
+        return { row, col };
     }
 }
 

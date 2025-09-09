@@ -38,6 +38,12 @@ class PBNBot {
     this.isTyping = false; // Do Not Edit, Lock flag for commandEntryInterval
     this.activeHTTPRequest = false; // Do Not Edit, Lock flag for gameListInterval
     this.selectedServer = '';
+    this.botInfo = {
+      xCoord: 0,
+      yCoord: 0,
+      xIndex: 0,
+      yIndex: 0
+    };
     this.activeGame = false; // Flag for active game session
     this.activeGameMode = null; // String that stores name of active game mode
     this.activeGamePlayers = null; // Number of players in active game
@@ -191,7 +197,13 @@ class PBNBot {
   // === Logs any console.log() output from browser context
   handleConsole(msg) {
     msg.args().forEach((arg) => {
-      arg.jsonValue().then((val) => console.log(val));
+      arg.jsonValue().then((val) => {
+        if (val == 'PBTerm-NodeJS.css loaded.') {
+          console.log(`✅ ${this.ansiCodes.RESET}${this.ansiCodes.BOLD}[PBN Bot]${this.ansiCodes.RESET} ${this.ansiCodes.GREEN}Site resources loaded.${this.ansiCodes.RESET}`);
+        } else {
+          console.log(val);
+        }
+      });
     });  
   }
 
@@ -292,6 +304,7 @@ class PBNBot {
       '14', // Player position update
       '13', // Player $ on hand, and equipped items
       '15', // Player Update
+      '16', // Store and Locker info
       '17', // PBN Terrain message
       '18', // PBN communication messages
     ]
@@ -377,7 +390,8 @@ class PBNBot {
 
     // [UTC 15:14:14] {"id":"10","text":"Statistics for THIS game: (Survival)"}
     // [UTC 19:05:38] {"id":"10","text":"  10 people started, 10 surviving (0 bots), 10 minutes left in this game."}
-
+    // Look GPS:
+    // [UTC 20:48:01] {"id":"10","text":"The scarf is made of DOWN.\r\nThe readout indicates that you are at 0, 0."}
     // Handle RWHO, WHO, Look, Game Server Messages
     if (payloadData['id'] == "10") {
       // console.log(payloadDataString)
@@ -508,6 +522,26 @@ class PBNBot {
           //console.log("People started:", startedCount);
           this.activeGamePlayers = startedCount;
         }
+      } else if (payloadData['text'].includes('The readout indicates that you are at')) {
+        const match = payloadData['text'].match(/The readout indicates that you are at\s+(-?\d+),\s*(-?\d+)/);
+        if (match) {
+          const xCoord = parseInt(match[1], 10);
+          const yCoord = parseInt(match[2], 10);
+          this.botInfo.xCoord = xCoord;
+          this.botInfo.yCoord = yCoord;
+          //console.log(`Player coordinates: X=${xCoord}, Y=${yCoord}`);
+          /*
+          Player starts at (0,0)
+         (149, 99)( 0, 99)( 1, 99)
+         (149,  0)( 0,  0)( 1,  0)
+         (149,  1)( 0,  1)( 1,  1)
+
+          Player moves north (0,99)
+          Player moves south (0,1)
+          Player moves east  (1,0)
+          Player moves west  (149,0)
+          */
+        }
       }
     }
 
@@ -531,9 +565,7 @@ class PBNBot {
       this.gameMap.lines = payloadData['data']['lines'];
       // Uncomment to log map data to console
       //console.log(this.gameMap);
-      //this.printGameMap();
       this.pbnv.setGameMap(this.gameMap);
-      //this.pbnv.printGameMap();
       this.pbnv.exportMapToFile();
       this.pbnv.exportRawMapToFile();
       this.pbnv.setTerrainInfo();
@@ -659,7 +691,14 @@ class PBNBot {
         this.resetStats();
         return;
       } else if (trimmed.toLowerCase() === 'printmap') {  
-        this.pbnv.printGameMap();
+        const newArrayIndex = this.pbnv.toArrayIndex(this.botInfo.xCoord, this.botInfo.yCoord);
+        const row = newArrayIndex.row;
+        const col = newArrayIndex.col;
+        this.botInfo.xIndex = col;
+        this.botInfo.yIndex = row;
+        this.pbnv.setGameMap(this.gameMap);
+        this.pbnv.addPlayerToCorrectedMap(row, col);
+        this.pbnv.printMap(this.pbnv.correctedMap, true)
         return;
       } else if (trimmed.toLowerCase() === 'printterrain') {
         this.pbnv.printTerrainInfo();
@@ -670,8 +709,27 @@ class PBNBot {
       } else if (trimmed.toLowerCase() === 'exportrawmapimage') {
         this.pbnv.exportMapToPNG('data/game_map_raw.png', true);
         return;
+      } else if (trimmed.toLowerCase() === 'n') {
+        // Handle North movement
+        this.moveNorth();
+        return;
+      } else if (trimmed.toLowerCase() === 's') {
+        // Handle South movement
+        this.moveSouth();
+        return;
+      } else if (trimmed.toLowerCase() === 'e') {
+        // Handle East movement
+        this.moveEast();
+        return;
+      } else if (trimmed.toLowerCase() === 'w') {
+        // Handle West movement
+        this.moveWest();
+        return;
+      } else if (trimmed.toLowerCase() === 'clear') {
+        console.clear();
+        this.rl.prompt(); // Show next prompt
+        return;
       }
-
       try {
         // Add console command to the Command Entry List
         this.addCommandEntry(trimmed);
@@ -1463,6 +1521,75 @@ class PBNBot {
       await new Promise(resolve => setTimeout(resolve, 100));
     }
     return this.activeGamePlayers;
+  }
+
+  moveNorth() {
+    this.addCommandEntry('n');
+    this.movePlayer('n');
+    this.addCommandEntry('look gps');
+  }
+
+  moveSouth() {
+    this.addCommandEntry('s');
+    this.movePlayer('s');
+    this.addCommandEntry('look gps');
+  }
+
+  moveEast() {
+    this.addCommandEntry('e');
+    this.movePlayer('e');
+    this.addCommandEntry('look gps');
+  }
+
+  moveWest() {
+    this.addCommandEntry('w');
+    this.movePlayer('w');
+    this.addCommandEntry('look gps');
+  }
+
+
+  // === Move player in a given direction and calculate new coordinates with wrap-around
+  movePlayer(direction) {
+    let { xCoord, yCoord } = this.botInfo;
+    const MAP_WIDTH = 150;
+    const MAP_HEIGHT = 100;
+    switch (direction.toLowerCase()) {
+      case 'north':
+      case 'n':
+        // Calculate new yCoord with wrap-around
+        yCoord = yCoord === 0 ? MAP_HEIGHT - 1 : yCoord - 1;
+        break;
+      case 'south':
+      case 's':
+        // Calculate new yCoord with wrap-around
+        yCoord = yCoord === 0 ? 1 : yCoord + 1;
+        if (yCoord >= MAP_HEIGHT) yCoord = 0;
+        break;
+      case 'east':
+      case 'e':
+        // Calculate new xCoord with wrap-around
+        xCoord = (xCoord + 1) % MAP_WIDTH;
+        break;
+      case 'west':
+      case 'w':
+        // Calculate new xCoord with wrap-around
+        xCoord = xCoord === 0 ? MAP_WIDTH - 1 : xCoord - 1;
+        break;
+      default:
+        console.warn(`Unknown direction: ${direction}`);
+        return;
+    }
+
+    //console.log(`New player position: (${xCoord}, ${yCoord})`);
+    //console.log(`Array index: (row: ${this.pbnv.toArrayIndex(xCoord, yCoord).row}, col: ${this.pbnv.toArrayIndex(xCoord, yCoord).col})`);
+    const newArrayIndex = this.pbnv.toArrayIndex(xCoord, yCoord);
+    const row = newArrayIndex.row;
+    const col = newArrayIndex.col;
+    this.botInfo.xIndex = col;
+    this.botInfo.yIndex = row;
+    this.pbnv.setGameMap(this.gameMap); // Reset map to original
+    this.pbnv.addPlayerToCorrectedMap(row, col);
+    this.pbnv.printMap(this.pbnv.correctedMap, true);
   }
 
 }

@@ -342,6 +342,8 @@ Once running, a `>` prompt will appear in your terminal. You can type any in-gam
 
   - ![Raw Map Image](./media/game_map_raw.png)
 
+- `n`, `s`, `e`, `w`: Moves your character North, South, East, or West. Use `printmap` afterward to see your new location.
+
 ## Troubleshooting
 
 - **Error: Failed to log in:**
